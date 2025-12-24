@@ -207,6 +207,136 @@ def get_rooms():
     return jsonify([row['name'] for row in rows])
 
 
+@app.route("/api/rooms", methods=["POST"])
+@login_required
+def create_room():
+    data = request.get_json()
+    name = data.get('name', '').strip().lower().replace(' ', '-')
+    
+    if not name:
+        return jsonify({"error": "Room name is required"}), 400
+    
+    if len(name) < 2 or len(name) > 20:
+        return jsonify({"error": "Room name must be 2-20 characters"}), 400
+    
+    # Only allow alphanumeric and hyphens
+    if not all(c.isalnum() or c == '-' for c in name):
+        return jsonify({"error": "Room name can only contain letters, numbers, and hyphens"}), 400
+    
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("INSERT INTO rooms (name) VALUES (?)", (name,))
+        conn.commit()
+        conn.close()
+        
+        # Notify all clients about new room
+        socketio.emit("room_created", {"name": name})
+        
+        return jsonify({"message": "Room created", "name": name}), 201
+    except sqlite3.IntegrityError:
+        conn.close()
+        return jsonify({"error": "Room already exists"}), 409
+
+
+@app.route("/api/rooms/<name>", methods=["DELETE"])
+@login_required
+def delete_room(name):
+    if name == 'general':
+        return jsonify({"error": "Cannot delete the general room"}), 403
+    
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    cursor.execute("DELETE FROM rooms WHERE name = ?", (name,))
+    if cursor.rowcount == 0:
+        conn.close()
+        return jsonify({"error": "Room not found"}), 404
+    
+    # Also delete messages in the room
+    cursor.execute("DELETE FROM messages WHERE room = ?", (name,))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({"message": "Room deleted"})
+
+
+@app.route("/api/messages/<message_id>", methods=["DELETE"])
+@login_required
+def delete_message(message_id):
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    # Check if message exists and belongs to user
+    cursor.execute("SELECT user_id, room FROM messages WHERE id = ?", (message_id,))
+    message = cursor.fetchone()
+    
+    if not message:
+        conn.close()
+        return jsonify({"error": "Message not found"}), 404
+    
+    if message['user_id'] != request.user_id:
+        conn.close()
+        return jsonify({"error": "You can only delete your own messages"}), 403
+    
+    cursor.execute("DELETE FROM messages WHERE id = ?", (message_id,))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({"message": "Message deleted", "id": message_id})
+
+
+# ============ ACCOUNT ROUTES ============
+
+@app.route("/api/account", methods=["DELETE"])
+@login_required
+def delete_account():
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    # Delete user's messages
+    cursor.execute("DELETE FROM messages WHERE user_id = ?", (request.user_id,))
+    
+    # Delete user
+    cursor.execute("DELETE FROM users WHERE id = ?", (request.user_id,))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({"message": "Account deleted"})
+
+
+@app.route("/api/account/password", methods=["PUT"])
+@login_required
+def change_password():
+    data = request.get_json()
+    current_password = data.get('currentPassword', '')
+    new_password = data.get('newPassword', '')
+    
+    if not current_password or not new_password:
+        return jsonify({"error": "Current and new password are required"}), 400
+    
+    if len(new_password) < 6:
+        return jsonify({"error": "New password must be at least 6 characters"}), 400
+    
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT password_hash FROM users WHERE id = ?", (request.user_id,))
+    user = cursor.fetchone()
+    
+    if not user or not check_password_hash(user['password_hash'], current_password):
+        conn.close()
+        return jsonify({"error": "Current password is incorrect"}), 401
+    
+    new_hash = generate_password_hash(new_password)
+    cursor.execute("UPDATE users SET password_hash = ? WHERE id = ?", (new_hash, request.user_id))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({"message": "Password changed successfully"})
+
+
 # ============ SOCKET.IO EVENTS ============
 
 @socketio.on("connect")
@@ -309,6 +439,33 @@ def handle_typing(data):
     
     room = data.get("room", "general")
     emit("user_typing", {"username": user["username"]}, room=room, include_self=False)
+
+
+@socketio.on("delete_message")
+def handle_delete_message(data):
+    user = active_users.get(request.sid)
+    if not user:
+        emit("error", {"message": "Not authenticated"})
+        return
+    
+    message_id = data.get("messageId")
+    room = data.get("room", "general")
+    
+    if not message_id:
+        return
+    
+    # Verify ownership and delete
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT user_id FROM messages WHERE id = ?", (message_id,))
+    message = cursor.fetchone()
+    
+    if message and message['user_id'] == user['user_id']:
+        cursor.execute("DELETE FROM messages WHERE id = ?", (message_id,))
+        conn.commit()
+        emit("message_deleted", {"messageId": message_id}, room=room)
+    
+    conn.close()
 
 
 if __name__ == "__main__":
