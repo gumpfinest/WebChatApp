@@ -108,6 +108,16 @@ class AuthManager {
         if (!auth) return false;
 
         try {
+            // First, try to refresh the token if it's expiring soon
+            if (api.isTokenExpiringSoon() && api.getRefreshToken()) {
+                try {
+                    await api.refreshAccessToken();
+                    console.log('Token refreshed during session verification');
+                } catch (e) {
+                    console.warn('Proactive token refresh failed:', e);
+                }
+            }
+
             const verification = await api.verifyToken();
             if (verification && verification.valid) {
                 // Update user data with latest from server
@@ -117,6 +127,22 @@ class AuthManager {
             }
         } catch (error) {
             console.warn('Session verification failed:', error);
+            
+            // Try to refresh token before giving up
+            if (api.getRefreshToken()) {
+                try {
+                    await api.refreshAccessToken();
+                    // Retry verification with new token
+                    const verification = await api.verifyToken();
+                    if (verification && verification.valid) {
+                        this.currentUser = verification.user;
+                        localStorage.setItem(CONFIG.USER_KEY, JSON.stringify(verification.user));
+                        return true;
+                    }
+                } catch (refreshError) {
+                    console.warn('Token refresh also failed:', refreshError);
+                }
+            }
         }
 
         this.clearAuth();

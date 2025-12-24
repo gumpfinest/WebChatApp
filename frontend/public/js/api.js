@@ -35,9 +35,15 @@ class ApiService {
 
     isTokenExpiringSoon() {
         const expiry = localStorage.getItem(CONFIG.TOKEN_EXPIRY_KEY);
-        if (!expiry) return false;
-        // Refresh if less than 2 minutes remaining
+        if (!expiry) return true; // No expiry stored - assume needs refresh
+        // Refresh if less than 2 minutes remaining OR already expired
         return Date.now() > (parseInt(expiry) - 120000);
+    }
+
+    isTokenExpired() {
+        const expiry = localStorage.getItem(CONFIG.TOKEN_EXPIRY_KEY);
+        if (!expiry) return true; // No expiry stored - assume expired
+        return Date.now() > parseInt(expiry);
     }
 
     getHeaders(includeAuth = true) {
