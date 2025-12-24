@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Chat App</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Loading Screen -->
+        <div id="loading-screen" class="screen">
+            <div class="loading-container">
+                <div class="loading-spinner"></div>
+                <p>Loading...</p>
+            </div>
+        </div>
+
+        <!-- Auth Screen -->
+        <div id="auth-screen" class="screen hidden">
+            <div class="auth-box">
+                <h1>Web Chat</h1>
+                
+                <!-- Login Form -->
+                <div id="login-form" class="auth-form">
+                    <h2>Login</h2>
+                    <input type="text" id="login-username" placeholder="Username" maxlength="20" autocomplete="username">
+                    <input type="password" id="login-password" placeholder="Password" autocomplete="current-password">
+                    <div id="login-error" class="error-message"></div>
+                    <button id="login-btn" class="primary-btn">Login</button>
+                    <p class="auth-switch">
+                        Don't have an account? <a href="#" id="show-register">Register</a>
+                    </p>
+                </div>
+
+                <!-- Register Form -->
+                <div id="register-form" class="auth-form hidden">
+                    <h2>Create Account</h2>
+                    <input type="text" id="register-username" placeholder="Username (3-20 characters)" maxlength="20" autocomplete="username">
+                    <input type="password" id="register-password" placeholder="Password (min 6 characters)" autocomplete="new-password">
+                    <input type="password" id="register-confirm" placeholder="Confirm Password" autocomplete="new-password">
+                    <div id="register-error" class="error-message"></div>
+                    <button id="register-btn" class="primary-btn">Create Account</button>
+                    <p class="auth-switch">
+                        Already have an account? <a href="#" id="show-login">Login</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Screen -->
+        <div id="chat-screen" class="screen hidden">
+            <div class="chat-container">
+                <!-- Sidebar -->
+                <div class="sidebar">
+                    <div class="sidebar-header">
+                        <h2>Rooms</h2>
+                        <button id="open-create-room-btn" class="icon-btn" title="Create Room">+</button>
+                    </div>
+                    <div id="rooms-list" class="rooms-list">
+                        <div class="room-item active" data-room="general"># general</div>
+                    </div>
+                    <div class="user-info">
+                        <div class="user-profile">
+                            <div id="user-avatar" class="user-avatar"></div>
+                            <span id="current-user"></span>
+                        </div>
+                        <div class="user-actions">
+                            <button id="settings-btn" class="icon-btn" title="Settings">⚙</button>
+                            <button id="logout-btn">Logout</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chat Area -->
+                <div class="chat-area">
+                    <div class="chat-header">
+                        <h3 id="current-room"># general</h3>
+                        <span id="typing-indicator"></span>
+                    </div>
+                    <div id="messages-container" class="messages-container">
+                        <!-- Messages will be inserted here -->
+                    </div>
+                    <div class="message-input-container">
+                        <input type="text" id="message-input" placeholder="Type a message...">
+                        <button id="send-btn">Send</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Modal -->
+        <div id="settings-modal" class="modal">
+            <div class="modal-content modal-large">
+                <div class="modal-header">
+                    <h2>Settings</h2>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="settings-section">
+                        <h3>Profile</h3>
+                        <div class="profile-settings">
+                            <div class="avatar-upload-section">
+                                <div class="avatar-upload-preview">
+                                    <div id="settings-avatar-preview" class="settings-avatar">
+                                        <span id="settings-avatar-initial">A</span>
+                                        <img id="settings-avatar-image" class="avatar-image hidden" alt="Avatar">
+                                    </div>
+                                </div>
+                                <div class="avatar-upload-controls">
+                                    <label for="avatar-upload" class="upload-btn">
+                                          Upload Image
+                                        <input type="file" id="avatar-upload" accept="image/png,image/jpeg,image/gif,image/webp" hidden>
+                                    </label>
+                                    <button id="remove-avatar-btn" class="secondary-btn">Remove Avatar</button>
+                                    <p class="help-text">Max 2MB. PNG, JPG, GIF, or WebP</p>
+                                </div>
+                            </div>
+                            <div class="display-name-setting">
+                                <label for="display-name">Display Name</label>
+                                <input type="text" id="display-name" placeholder="Enter display name (optional)" maxlength="32">
+                                <p class="help-text">This name will be shown instead of your username</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="settings-section">
+                        <h3>Customize Colors</h3>
+                        <div class="color-settings">
+                            <div class="color-setting">
+                                <label for="avatar-color">Avatar Background Color</label>
+                                <div class="color-picker-row">
+                                    <div id="avatar-preview" class="color-preview avatar-preview">A</div>
+                                    <input type="color" id="avatar-color" value="#5865F2">
+                                    <button id="reset-avatar-color" class="reset-btn" title="Reset to default">↺</button>
+                                </div>
+                                <p class="help-text">Used when no avatar image is set</p>
+                            </div>
+                            <div class="color-setting">
+                                <label for="name-color">Name Color</label>
+                                <div class="color-picker-row">
+                                    <span id="name-preview" class="name-preview">Username</span>
+                                    <input type="color" id="name-color" value="#7289da">
+                                    <button id="reset-name-color" class="reset-btn" title="Reset to default">↺</button>
+                                </div>
+                            </div>
+                        </div>
+                        <button id="save-profile-btn" class="primary-btn">Save Profile</button>
+                    </div>
+                    <div class="settings-section">
+                        <h3>Change Password</h3>
+                        <input type="password" id="current-password" placeholder="Current Password">
+                        <input type="password" id="new-password" placeholder="New Password">
+                        <input type="password" id="confirm-new-password" placeholder="Confirm New Password">
+                        <button id="change-password-btn" class="primary-btn">Change Password</button>
+                    </div>
+                    <div class="settings-section">
+                        <h3>Two-Factor Authentication</h3>
+                        <p class="help-text">Add an extra layer of security to your account. A verification code will be sent to your email when you log in.</p>
+                        <div id="2fa-status" class="two-fa-status">
+                            <span id="2fa-status-text">Loading...</span>
+                        </div>
+                        <div id="2fa-disabled-section">
+                            <input type="email" id="2fa-email" placeholder="Enter your email address">
+                            <button id="enable-2fa-btn" class="primary-btn">Enable Email 2FA</button>
+                        </div>
+                        <div id="2fa-enabled-section" class="hidden">
+                            <p class="success-text">Two-factor authentication is enabled</p>
+                            <p class="help-text" id="2fa-email-display"></p>
+                            <input type="password" id="disable-2fa-password" placeholder="Enter password to disable">
+                            <button id="disable-2fa-btn" class="secondary-btn">Disable 2FA</button>
+                        </div>
+                    </div>
+                    <div class="settings-section danger-zone">
+                        <h3>Danger Zone</h3>
+                        <p>Deleting your account is permanent and cannot be undone.</p>
+                        <button id="delete-account-btn" class="danger-btn">Delete Account</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Create Room Modal -->
+        <div id="create-room-modal" class="modal">
+            <div class="modal-content modal-small">
+                <div class="modal-header">
+                    <h2>Create Room</h2>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" id="new-room-name" placeholder="Room name (2-20 characters)" maxlength="20">
+                    <div class="modal-actions">
+                        <button class="cancel-btn">Cancel</button>
+                        <button id="create-room-btn" class="primary-btn">Create</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Confirmation Modal -->
+        <div id="confirm-modal" class="modal">
+            <div class="modal-content modal-small">
+                <div class="modal-header">
+                    <h2 id="confirm-title">Confirm</h2>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p id="confirm-message">Are you sure?</p>
+                    <div class="modal-actions">
+                        <button class="cancel-btn">Cancel</button>
+                        <button id="confirm-yes-btn" class="danger-btn">Confirm</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2FA Setup Modal -->
+        <div id="two-fa-setup-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Verify Your Email</h2>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="2fa-setup-step-1">
+                        <p>A verification code has been sent to:</p>
+                        <p id="2fa-email-hint" class="email-hint"></p>
+                        <p style="margin-top: 15px;">Enter the 6-digit code from your email:</p>
+                        <input type="text" id="2fa-verify-code" placeholder="Enter 6-digit code" maxlength="6" pattern="[0-9]*">
+                        <div class="modal-actions" style="margin-top: 15px;">
+                            <button id="resend-2fa-code-btn" class="secondary-btn">Resend Code</button>
+                            <button id="verify-2fa-setup-btn" class="primary-btn">Verify & Enable</button>
+                        </div>
+                    </div>
+                    <div id="2fa-setup-step-2" class="hidden">
+                        <div class="success-message">
+                            <h3>Email 2FA Enabled!</h3>
+                            <p>Save these backup codes in a safe place. You can use them to access your account if you can't receive emails:</p>
+                        </div>
+                        <div class="backup-codes-container">
+                            <ul id="backup-codes-list"></ul>
+                        </div>
+                        <button id="copy-backup-codes-btn" class="secondary-btn">Copy Backup Codes</button>
+                        <button id="close-2fa-setup-btn" class="primary-btn">Done</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2FA Login Modal -->
+        <div id="two-fa-login-modal" class="modal">
+            <div class="modal-content modal-small">
+                <div class="modal-header">
+                    <h2>Email Verification</h2>
+                </div>
+                <div class="modal-body">
+                    <p>A verification code has been sent to:</p>
+                    <p id="2fa-login-email-hint" class="email-hint"></p>
+                    <p style="margin-top: 15px;">Enter the 6-digit code:</p>
+                    <input type="text" id="2fa-login-code" placeholder="Enter 6-digit code" maxlength="6" pattern="[0-9]*" autofocus>
+                    <p class="help-text" style="margin-top: 10px;">Didn't receive the code? Check your spam folder or use a backup code.</p>
+                    <div class="modal-actions">
+                        <button id="2fa-login-cancel-btn" class="cancel-btn">Cancel</button>
+                        <button id="2fa-login-verify-btn" class="primary-btn">Verify</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
