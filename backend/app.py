@@ -754,7 +754,7 @@ def get_profile():
     cursor = conn.cursor()
     
     cursor.execute("""
-        SELECT username, display_name, avatar_color, name_color, avatar_url, totp_enabled 
+        SELECT username, display_name, avatar_color, name_color, avatar_url, email_2fa_enabled, email 
         FROM users WHERE id = ?
     """, (request.user_id,))
     user = cursor.fetchone()
@@ -769,7 +769,8 @@ def get_profile():
         "avatarColor": user['avatar_color'],
         "nameColor": user['name_color'],
         "avatarUrl": user['avatar_url'],
-        "totpEnabled": bool(user['totp_enabled'])
+        "email2FAEnabled": bool(user['email_2fa_enabled']),
+        "email": user['email']
     })
 
 
