@@ -1,11 +1,13 @@
 // Socket.IO Connection Manager
 import CONFIG from './config.js';
 import auth from './auth.js';
+import api from './api.js';
 
 class SocketManager {
     constructor() {
         this.socket = null;
         this.eventHandlers = {};
+        this.authRetried = false;
     }
 
     connect() {
@@ -15,17 +17,43 @@ class SocketManager {
 
         this.socket = io(CONFIG.BACKEND_URL);
 
-        this.socket.on('connect', () => {
+        this.socket.on('connect', async () => {
             console.log('Connected to server');
+            
+            // Try to refresh token if it's expiring soon before authenticating
+            if (api.isTokenExpiringSoon() && api.getRefreshToken()) {
+                try {
+                    await api.refreshAccessToken();
+                    console.log('Token refreshed before socket auth');
+                } catch (e) {
+                    console.warn('Token refresh failed:', e);
+                }
+            }
+            
             this.socket.emit('authenticate', { token: auth.getToken() });
         });
 
-        this.socket.on('authenticated', (data) => {
+        this.socket.on('authenticated', async (data) => {
             if (data.success) {
                 console.log('Socket authenticated');
+                this.authRetried = false; // Reset retry flag on success
                 this.trigger('authenticated', data);
             } else {
                 console.error('Socket authentication failed:', data.error);
+                
+                // Try to refresh token and retry once
+                if (!this.authRetried && api.getRefreshToken()) {
+                    this.authRetried = true;
+                    try {
+                        await api.refreshAccessToken();
+                        console.log('Token refreshed, retrying socket auth');
+                        this.socket.emit('authenticate', { token: auth.getToken() });
+                        return; // Don't trigger auth_failed yet
+                    } catch (e) {
+                        console.error('Token refresh failed:', e);
+                    }
+                }
+                
                 this.trigger('auth_failed', data);
             }
         });
