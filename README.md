@@ -22,12 +22,12 @@ WebChatApp/
 
 ## Features
 
-- 💬 Real-time messaging with WebSockets
-- 👤 Username-based authentication
-- 🏠 Chat rooms support
-- ✍️ Typing indicators
-- 📱 Responsive design
-- 🎨 Modern Discord-like UI
+- Real-time messaging with WebSockets
+- Username-based authentication
+- Chat rooms support
+- Typing indicators
+- Responsive design
+- Modern Discord-like UI
 
 ## Prerequisites
 
