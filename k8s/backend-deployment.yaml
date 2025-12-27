@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: webchatapp
+spec:
+  replicas: 1  # Keep at 1 due to SQLite
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: your-registry/webchatapp-backend:latest
+          ports:
+            - containerPort: 5000
+          envFrom:
+            - configMapRef:
+                name: webchatapp-config
+            - secretRef:
+                name: webchatapp-secrets
+          volumeMounts:
+            - name: chat-db
+              mountPath: /app/data
+            - name: avatars
+              mountPath: /app/uploads/avatars
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /api/auth/verify
+              port: 5000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /api/auth/verify
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: chat-db
+          persistentVolumeClaim:
+            claimName: chat-db-pvc
+        - name: avatars
+          persistentVolumeClaim:
+            claimName: avatars-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+  namespace: webchatapp
+spec:
+  selector:
+    app: backend
+  ports:
+    - port: 5000
+      targetPort: 5000
+  type: ClusterIP
