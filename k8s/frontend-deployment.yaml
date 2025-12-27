@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: your-registry/webchatapp-frontend:latest
+          image: gumpfinest/webchatapp-frontend:latest
           ports:
             - containerPort: 3000
           envFrom:
